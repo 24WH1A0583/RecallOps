@@ -5,86 +5,143 @@ from groq import Groq
 
 load_dotenv()
 
-# -----------------------------
-# Hindsight
-# -----------------------------
+# =========================================================
+# CLIENTS
+# =========================================================
+
 hindsight = Hindsight(
     base_url=os.getenv("HINDSIGHT_BASE_URL"),
     api_key=os.getenv("HINDSIGHT_API_KEY")
 )
 
-# -----------------------------
-# Groq
-# -----------------------------
 groq = Groq(
     api_key=os.getenv("GROQ_API_KEY")
 )
 
 
-# -----------------------------
-# Investigate Incident
-# -----------------------------
+# =========================================================
+# INVESTIGATE INCIDENT
+# =========================================================
+
 def investigate_incident(incident):
 
-    # 1. Recall similar past incidents
+    # -----------------------------------------------------
+    # 1. Recall historical memories
+    # -----------------------------------------------------
+
     results = hindsight.recall(
         bank_id="recallops",
         query=incident
     )
 
-    # 2. Keep only the top 5 memories
-    recalled_memories = results.results[:5]
+    # Keep a reasonable number of candidates.
+    # We will let the LLM determine which ones actually
+    # support the investigation.
+    recalled_memories = results.results[:10]
 
-    # 3. Convert memories into text
-    memories = "\n\n".join(
-        memory.text
-        for memory in recalled_memories
-    )
+    # -----------------------------------------------------
+    # 2. Convert memories into evidence
+    # -----------------------------------------------------
 
-    # 4. Ask AI to analyze the incident
+    if recalled_memories:
+
+        memories = "\n\n".join(
+            f"MEMORY {i + 1}:\n{memory.text}"
+            for i, memory in enumerate(recalled_memories)
+        )
+
+    else:
+
+        memories = "NO HISTORICAL MEMORY FOUND."
+
+    # -----------------------------------------------------
+    # 3. Ask AI to investigate using ONLY evidence
+    # -----------------------------------------------------
+
     prompt = f"""
 You are RecallOps, an AI incident response assistant.
 
 Your job is to investigate a new production incident
 using historical incident memory.
 
-NEW INCIDENT:
+==================================================
+NEW INCIDENT
+==================================================
+
 {incident}
 
-HISTORICAL INCIDENT MEMORY:
+==================================================
+HISTORICAL MEMORY
+==================================================
+
 {memories}
 
-IMPORTANT RULES:
+==================================================
+INVESTIGATION RULES
+==================================================
 
-1. Prioritize memories that match:
+1. Identify the most relevant historical incidents.
+
+2. Prioritize memories matching:
    - the same service
    - the same error
    - the same failure pattern
    - the same root cause
 
-2. Prefer directly relevant incidents over unrelated incidents.
+3. Do NOT treat a memory as relevant simply because
+   it mentions a similar word.
 
-3. Use historical incidents as evidence.
+4. Prefer exact service + error + failure-pattern matches.
 
-4. Do not invent configuration values, numbers,
-   tools, or facts.
+5. Use historical incidents as evidence.
 
-5. Do not recommend actions unsupported
-   by the historical memory.
+6. Every recommended action MUST be supported by
+   the historical evidence provided above.
 
-6. If there is not enough evidence, say so.
+7. Do NOT invent:
+   - configuration values
+   - metrics
+   - tools
+   - infrastructure
+   - root causes
+   - actions
+   - incident IDs
 
-7. Keep the response concise.
+8. Do not recommend an action merely because it
+   helped another incident with a similar service.
 
-8. Give a maximum of 4 recommended actions.
+9. A recommendation must satisfy BOTH conditions:
+   - it is supported by a historical incident, AND
+   - the current incident contains evidence that makes
+     that action applicable.
 
-9. Mention only incident IDs that directly
-   support the investigation.
+10. Do not transfer conditions from historical incidents
+    into the current incident.
 
-Return exactly these sections:
+    Example:
+    If INC-009 had high database CPU, but the current
+    incident does not mention high database CPU, do NOT
+    recommend scaling database resources because of INC-009.
+
+11. Maximum 4 recommended actions.
+
+12. Confidence must reflect the strength of the
+    historical evidence:
+    - HIGH = strong direct historical match
+    - MEDIUM = partially matching historical evidence
+    - LOW = weak or insufficient historical evidence
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+Return EXACTLY these sections:
 
 LIKELY ROOT CAUSE:
-One concise explanation.
+One concise explanation based only on historical evidence.
+
+CONFIDENCE:
+HIGH, MEDIUM, or LOW
 
 RECOMMENDED ACTIONS:
 1. Action
@@ -93,12 +150,32 @@ RECOMMENDED ACTIONS:
 4. Action
 
 WHY:
-Briefly explain how the historical incidents
-support the recommendations.
+Briefly explain how the historical evidence supports
+the root cause and recommended actions.
 
 RELEVANT INCIDENTS:
-List the relevant incident IDs.
+List only the incident IDs that directly support
+the investigation.
+
+==================================================
+IMPORTANT
+==================================================
+
+If there is not enough evidence, do not guess.
+Say:
+
+"Insufficient historical evidence to determine the
+root cause confidently."
+
+In that case:
+- Confidence should be LOW.
+- Do not invent recommendations.
+- RELEVANT INCIDENTS should say "None".
 """
+
+    # -----------------------------------------------------
+    # 4. Generate investigation
+    # -----------------------------------------------------
 
     response = groq.chat.completions.create(
         model="openai/gpt-oss-20b",
@@ -110,15 +187,18 @@ List the relevant incident IDs.
         ]
     )
 
+    answer = response.choices[0].message.content
+
     return {
-        "answer": response.choices[0].message.content,
+        "answer": answer,
         "memories": recalled_memories
     }
 
 
-# -----------------------------
-# Learn From Resolved Incident
-# -----------------------------
+# =========================================================
+# LEARN FROM RESOLVED INCIDENT
+# =========================================================
+
 def learn_from_incident(
     incident,
     root_cause,
@@ -154,9 +234,10 @@ for future incident investigations.
     return "Incident resolution stored in Hindsight."
 
 
-# -----------------------------
-# Test Agent Directly
-# -----------------------------
+# =========================================================
+# TEST AGENT DIRECTLY
+# =========================================================
+
 if __name__ == "__main__":
 
     new_incident = """
@@ -165,17 +246,14 @@ if __name__ == "__main__":
     The service is currently unavailable.
     """
 
-    try:
-        result = investigate_incident(new_incident)
+    result = investigate_incident(new_incident)
 
-        print("\n========== RECALL OPS ==========\n")
-        print(result["answer"])
+    print("\n========== RECALL OPS ==========\n")
+    print(result["answer"])
 
-        print("\n========== RECALLED MEMORY ==========\n")
+    print("\n========== RECALLED MEMORY ==========\n")
 
-        for memory in result["memories"]:
-            print(memory.text)
-            print("-" * 50)
-
-    finally:
-        hindsight.close()
+    for memory in result["memories"][:5]:
+        print(memory.text)
+        print("-" * 50)
+    hindsight.close()    

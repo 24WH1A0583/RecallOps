@@ -46,6 +46,14 @@ st.markdown(
         margin-bottom: 10px;
     }
 
+    .control-box {
+        padding: 18px;
+        border-radius: 12px;
+        border: 1px solid #dddddd;
+        background-color: #fafafa;
+        margin-bottom: 15px;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
@@ -200,6 +208,9 @@ if st.button(
         st.session_state["error"] = error
         st.session_state["severity"] = severity
 
+        # Reset human decision for every new investigation
+        st.session_state["decision"] = "Pending"
+
         with st.spinner(
             "🧠 Recalling memory and investigating..."
         ):
@@ -285,6 +296,39 @@ if "answer" in st.session_state:
 
 
     # -----------------------------------------------------
+    # Confidence
+    # -----------------------------------------------------
+
+    if "CONFIDENCE:" in answer:
+
+        confidence_section = answer.split(
+            "CONFIDENCE:"
+        )[1]
+
+        if "RECOMMENDED ACTIONS:" in confidence_section:
+
+            confidence_section = confidence_section.split(
+                "RECOMMENDED ACTIONS:"
+            )[0]
+
+        confidence = confidence_section.strip()
+
+        st.markdown("### 🎯 Confidence")
+
+        if confidence.upper().startswith("HIGH"):
+
+            st.success("HIGH")
+
+        elif confidence.upper().startswith("MEDIUM"):
+
+            st.warning("MEDIUM")
+
+        else:
+
+            st.error("LOW")
+
+
+    # -----------------------------------------------------
     # Recommended Actions
     # -----------------------------------------------------
 
@@ -349,6 +393,170 @@ if "answer" in st.session_state:
         st.write(
             incidents_section.strip()
         )
+
+
+# =========================================================
+# HUMAN CONTROL
+# =========================================================
+
+if "answer" in st.session_state:
+
+    st.divider()
+
+    st.markdown(
+        '<div class="section-title">🧑‍💻 Human Control</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write(
+        "RecallOps provides recommendations, but the final "
+        "decision remains with the incident responder."
+    )
+
+    decision = st.session_state.get(
+        "decision",
+        "Pending"
+    )
+
+    if decision == "Pending":
+
+        st.info(
+            "Decision required: review the AI recommendation "
+            "before taking action."
+        )
+
+    elif decision == "Approved":
+
+        st.success(
+            "Approved — the human responder accepted the AI recommendation."
+        )
+
+    elif decision == "Overridden":
+
+        st.warning(
+            "Overridden — the human responder rejected the AI recommendation."
+        )
+
+    elif decision == "Escalated":
+
+        st.error(
+            "Escalated — the incident has been marked for human escalation."
+        )
+
+    control_col1, control_col2, control_col3, control_col4 = st.columns(4)
+
+    with control_col1:
+
+        if st.button(
+            "✅ Approve",
+            use_container_width=True
+        ):
+
+            st.session_state["decision"] = "Approved"
+            st.rerun()
+
+    with control_col2:
+
+        if st.button(
+            "✏️ Override",
+            use_container_width=True
+        ):
+
+            st.session_state["decision"] = "Overridden"
+            st.rerun()
+
+    with control_col3:
+
+        if st.button(
+            "❓ Ask Why",
+            use_container_width=True
+        ):
+
+            st.session_state["show_why"] = True
+
+    with control_col4:
+
+        if st.button(
+            "🚨 Escalate",
+            use_container_width=True
+        ):
+
+            st.session_state["decision"] = "Escalated"
+            st.rerun()
+
+
+    # -----------------------------------------------------
+    # Override Explanation
+    # -----------------------------------------------------
+
+    if st.session_state.get(
+        "decision"
+    ) == "Overridden":
+
+        override_reason = st.text_area(
+            "Why are you overriding the recommendation?",
+            placeholder=(
+                "Example: Current production conditions "
+                "do not match the historical incident."
+            )
+        )
+
+        if st.button(
+            "Save Override Reason",
+            use_container_width=True
+        ):
+
+            if override_reason.strip():
+
+                st.session_state["override_reason"] = (
+                    override_reason
+                )
+
+                st.success(
+                    "Override decision recorded."
+                )
+
+            else:
+
+                st.warning(
+                    "Please provide a reason for the override."
+                )
+
+
+    # -----------------------------------------------------
+    # Ask Why
+    # -----------------------------------------------------
+
+    if st.session_state.get(
+        "show_why",
+        False
+    ):
+
+        st.markdown("### 🔎 Evidence Behind the Recommendation")
+
+        st.info(
+            "RecallOps based its recommendation on the "
+            "historical incidents shown below. The AI does "
+            "not use unsupported historical conditions as "
+            "evidence for the current incident."
+        )
+
+        if "memories" in st.session_state:
+
+            for i, memory in enumerate(
+                st.session_state["memories"][:5],
+                start=1
+            ):
+
+                st.markdown(
+                    f"**Evidence {i}**"
+                )
+
+                st.write(
+                    memory.text
+                )
+
+                st.divider()
 
 
 # =========================================================
@@ -494,21 +702,26 @@ st.markdown(
 col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
+
     st.markdown("### 🚨")
     st.write("New Incident")
 
 with col2:
+
     st.markdown("### 🧠")
     st.write("Recall Memory")
 
 with col3:
+
     st.markdown("### 🤖")
     st.write("Investigate")
 
 with col4:
+
     st.markdown("### 📚")
     st.write("Remember")
 
 with col5:
+
     st.markdown("### 🔄")
     st.write("Improve")
