@@ -1,0 +1,177 @@
+[
+  {
+    "incident_id": "INC-001",
+    "service": "Payment API",
+    "error": "HTTP 500 Internal Server Error",
+    "logs": "Database connection timeout",
+    "severity": "High",
+    "root_cause": "Database connection pool was exhausted",
+    "resolution": "Increased the database connection pool size and restarted the service",
+    "actions_taken": [
+      "Checked database connections",
+      "Increased connection pool size",
+      "Restarted Payment API",
+      "Verified health endpoint"
+    ],
+    "outcome": "Payment API recovered successfully",
+    "lesson": "Monitor database connection pool usage during traffic spikes"
+  },
+  {
+    "incident_id": "INC-002",
+    "service": "User Service",
+    "error": "HTTP 500 Internal Server Error",
+    "logs": "DATABASE_URL environment variable not found",
+    "severity": "High",
+    "root_cause": "DATABASE_URL environment variable was missing after deployment",
+    "resolution": "Restored the DATABASE_URL environment variable and restarted the service",
+    "actions_taken": [
+      "Checked deployment configuration",
+      "Restored DATABASE_URL",
+      "Restarted User Service",
+      "Verified database connectivity"
+    ],
+    "outcome": "User Service recovered successfully",
+    "lesson": "Verify required environment variables after deployment"
+  },
+  {
+    "incident_id": "INC-003",
+    "service": "Order Service",
+    "error": "Request timeout",
+    "logs": "Database query exceeded timeout limit",
+    "severity": "Medium",
+    "root_cause": "Slow database query caused by missing database index",
+    "resolution": "Added an index to the frequently queried column",
+    "actions_taken": [
+      "Identified slow query",
+      "Checked database execution plan",
+      "Added missing index",
+      "Retested query performance"
+    ],
+    "outcome": "Order requests returned within normal response time",
+    "lesson": "Monitor slow database queries and review execution plans"
+  },
+  {
+    "incident_id": "INC-004",
+    "service": "Authentication Service",
+    "error": "401 Unauthorized",
+    "logs": "API key expired",
+    "severity": "High",
+    "root_cause": "Third-party authentication API key had expired",
+    "resolution": "Generated a new API key and updated the service configuration",
+    "actions_taken": [
+      "Checked authentication logs",
+      "Verified API key status",
+      "Generated new API key",
+      "Updated service configuration",
+      "Restarted service"
+    ],
+    "outcome": "User authentication returned to normal",
+    "lesson": "Monitor expiration dates for external API credentials"
+  },
+  {
+    "incident_id": "INC-005",
+    "service": "Notification Service",
+    "error": "Messages delayed",
+    "logs": "Message queue backlog increasing",
+    "severity": "Medium",
+    "root_cause": "Insufficient worker capacity during a traffic spike",
+    "resolution": "Scaled the notification workers horizontally",
+    "actions_taken": [
+      "Checked queue size",
+      "Identified worker saturation",
+      "Added worker instances",
+      "Monitored queue backlog"
+    ],
+    "outcome": "Message queue returned to normal levels",
+    "lesson": "Scale workers when queue backlog increases rapidly"
+  },
+  {
+    "incident_id": "INC-006",
+    "service": "Payment API",
+    "error": "HTTP 503 Service Unavailable",
+    "logs": "Database connection limit reached",
+    "severity": "High",
+    "root_cause": "Too many concurrent database connections",
+    "resolution": "Reduced unnecessary connections and increased the configured connection limit",
+    "actions_taken": [
+      "Checked active database connections",
+      "Identified connection leak",
+      "Fixed unnecessary connections",
+      "Adjusted connection limit",
+      "Restarted Payment API"
+    ],
+    "outcome": "Payment requests became available again",
+    "lesson": "Track database connection usage and connection leaks"
+  },
+  {
+    "incident_id": "INC-007",
+    "service": "Product Service",
+    "error": "HTTP 502 Bad Gateway",
+    "logs": "Upstream service unavailable",
+    "severity": "High",
+    "root_cause": "Product Service could not reach the inventory service",
+    "resolution": "Restarted the inventory service and verified network connectivity",
+    "actions_taken": [
+      "Checked upstream service status",
+      "Tested network connectivity",
+      "Restarted inventory service",
+      "Verified Product Service"
+    ],
+    "outcome": "Product requests returned successfully",
+    "lesson": "Check upstream dependencies when gateway errors occur"
+  },
+  {
+    "incident_id": "INC-008",
+    "service": "Search Service",
+    "error": "Search results unavailable",
+    "logs": "Search index synchronization failed",
+    "severity": "Medium",
+    "root_cause": "Search index synchronization job failed",
+    "resolution": "Restarted the synchronization job and rebuilt the failed index",
+    "actions_taken": [
+      "Checked synchronization logs",
+      "Identified failed job",
+      "Restarted synchronization",
+      "Rebuilt search index",
+      "Verified search results"
+    ],
+    "outcome": "Search functionality restored",
+    "lesson": "Monitor scheduled index synchronization jobs"
+  },
+  {
+    "incident_id": "INC-009",
+    "service": "Payment API",
+    "error": "Slow response time",
+    "logs": "Database CPU usage above 90%",
+    "severity": "Medium",
+    "root_cause": "High database load caused by a sudden traffic increase",
+    "resolution": "Scaled database resources and reduced expensive queries",
+    "actions_taken": [
+      "Checked database CPU",
+      "Identified expensive queries",
+      "Scaled database resources",
+      "Optimized queries",
+      "Monitored response time"
+    ],
+    "outcome": "Payment API response time returned to normal",
+    "lesson": "Monitor database resource usage during traffic spikes"
+  },
+  {
+    "incident_id": "INC-010",
+    "service": "User Service",
+    "error": "HTTP 503 Service Unavailable",
+    "logs": "Application health check failed repeatedly",
+    "severity": "High",
+    "root_cause": "Application failed to connect to the database after deployment",
+    "resolution": "Corrected the database configuration and restarted the service",
+    "actions_taken": [
+      "Checked application logs",
+      "Verified database configuration",
+      "Corrected configuration",
+      "Restarted User Service",
+      "Verified health check"
+    ],
+    "outcome": "User Service became healthy",
+    "lesson": "Validate database configuration immediately after deployment"
+  }
+]
