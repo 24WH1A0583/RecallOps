@@ -2,6 +2,8 @@
 
 **AI-Powered Incident Investigation with Persistent Memory**
 
+Live Demo: https://recallops-afgq68uqcenlfhikzkb94d.streamlit.app/
+
 RecallOps is an AI-assisted incident investigation application built with Streamlit, Groq, and Hindsight. It retrieves relevant historical incident memories, uses them to support an AI-generated investigation, records human decisions, and stores resolved incidents for future reference.
 
 ## Table of Contents
